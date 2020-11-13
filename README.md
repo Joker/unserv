@@ -1,6 +1,7 @@
 # UnServ
 API stub server with reverse proxy
 
+
 ```
 Usage of ./unserv:
   -js
@@ -15,4 +16,11 @@ Usage of ./unserv:
     	disable endpoint file cache
   -root string
     	app files root path (default "./build")
+```
+
+
+### Installation
+
+```sh
+$ go get -u github.com/Joker/unserv
 ```
