@@ -17,14 +17,14 @@ func endPoint(path, ext string) func(http.ResponseWriter, *http.Request) {
 		json []byte
 		err  error
 	)
-	if !cache {
+	if !reread {
 		json, err = ioutil.ReadFile(path)
 		if err != nil {
 			json = []byte(`{"Error": "ReadFile(` + path + `)"}`)
 		}
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
-		if cache {
+		if reread {
 			json, err = ioutil.ReadFile(path)
 			if err != nil {
 				json = []byte(`{"Error": "ReadFile(` + path + `)"}`)
@@ -38,7 +38,7 @@ func endPoint(path, ext string) func(http.ResponseWriter, *http.Request) {
 }
 
 func HandleStub(port int) {
-	fmt.Printf("server start on:  http://localhost:%d\n\nend points:\n", port)
+	fmt.Printf("server start on:  http://localhost:%d\n\nendpoints:\n", port)
 
 	for _, path := range walkStab("./stub") {
 		url, ext := path2url(path, "stub")
@@ -51,13 +51,17 @@ func HandleStub(port int) {
 
 //
 
-func HandleProxy(proxy string) {
+func proxyPoint(proxy *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// https://bana.io/blog/go-newsinglehostreverseproxy/#main-go
+		r.Host = r.URL.Host
+		proxy.ServeHTTP(w, r)
+	}
+}
+
+func HandleProxy(port int, proxy string) {
 	if proxy != "" {
-		proxyUrl, err := url.Parse(proxy)
-		if err != nil {
-			log.Printf("  bad proxy url: %v\n", err)
-			return
-		}
+		proxyUrl, _ := url.Parse(proxy)
 		reverseProxy := httputil.NewSingleHostReverseProxy(proxyUrl)
 
 		fmt.Printf("\nreverse on:  %s\n\nproxy url:\n", proxy)
@@ -65,10 +69,11 @@ func HandleProxy(proxy string) {
 		for _, path := range walkStab("./proxy") {
 			url, _ := path2url(path, "proxy")
 
-			http.Handle(url+"/", reverseProxy)
-			http.Handle(url, reverseProxy)
+			http.HandleFunc(url+"/", proxyPoint(reverseProxy))
+			http.HandleFunc(url, proxyPoint(reverseProxy))
 
-			fmt.Printf("  %s%s\n", proxy, url)
+			fmt.Printf("  http://localhost:%d%s =>\n", port, url)
+			fmt.Printf("      %s%s\n", proxy, url)
 		}
 		fmt.Print("\n\n")
 	}

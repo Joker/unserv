@@ -9,21 +9,21 @@ import (
 )
 
 var (
-	app   string
-	rqlog bool
-	cache bool
+	app    string
+	rqlog  bool
+	reread bool
 )
 
 func main() {
 	var (
-		js    = flag.Bool("js", false, "write setupProxy.js file")
+		js    = flag.Bool("react", false, "write setupProxy.js file (for React CRA with http-proxy-middleware)")
 		port  = flag.Int("p", 8080, "server port")
 		proxy string
 	)
-	flag.BoolVar(&rqlog, "log", false, "show request log")
-	flag.BoolVar(&cache, "reread", false, "disable endpoint file cache")
-	flag.StringVar(&app, "root", "./build", "static files root path")
-	flag.StringVar(&proxy, "proxy", "", `proxy url (example:  http://localhost:9000 )`)
+	flag.BoolVar(&reread, "reread", false, "disable endpoint file cache (reread file on every request)")
+	flag.BoolVar(&rqlog, "log", false, "show HTTP request log")
+	flag.StringVar(&app, "root", "./build", "root path for index.html and ./static foder")
+	flag.StringVar(&proxy, "proxy", "", `reverse proxy url (example:  http://localhost:9000 )`)
 	flag.Parse()
 
 	if *js {
@@ -37,7 +37,7 @@ func main() {
 	//
 
 	HandleStub(*port)
-	HandleProxy(proxy)
+	HandleProxy(*port, proxy)
 	http.HandleFunc("/static/", staticServer)
 	http.HandleFunc("/", index)
 
