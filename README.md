@@ -1,5 +1,7 @@
 # UnServ - stub-server with reverse proxy
+
 Simple tool for developers to mock REST API without being dependent on any backend applications or servers. 
+
 
 ## Features
 
@@ -7,11 +9,13 @@ Simple tool for developers to mock REST API without being dependent on any backe
 * reverse proxy (ability to redirect the endpoint request to a real working server)
 * HTTP server (`./build/index.html` and `./build/static` folder by default)
 
+
 ## Installation
 
-```bash
+```
 $ go get -u github.com/Joker/unserv
 ```
+
 
 ## Example
 
@@ -20,8 +24,8 @@ $ go get -u github.com/Joker/unserv
 If you want to make an endpoint on `http://localhost:8080/api/v1/question/`  
 you should create a file `./stub/api/v1/question.json` in a file structure similar to this one:
 
-```bash
-$ tree
+`$ tree`
+```
 .
 ├── proxy
 ├── src
@@ -32,13 +36,15 @@ $ tree
         ├── users.json
         └── v1
             └── question.json
-
-$ cat ./stub/api/v1/question.json
+```
+`$ cat ./stub/api/v1/question.json`
+```json
 {
     "answer": 42
 }
-
-$ unserv
+```
+`$ unserv`
+```
 server start on:  http://localhost:8080
 
 endpoints:
@@ -47,23 +53,25 @@ endpoints:
 ```
 
 #### Response
-```bash
-$ curl http://localhost:8080/api/v1/question/
+
+`$ curl http://localhost:8080/api/v1/question/`
+```json
 {
     "answer": 42
 }
 ```
+
 
 ### Proxy example
 
 If you want redirect the endpoint request to a real working server
 move endpoint file to the `./proxy` folder:
 
-```bash
-mkdir -p ./proxy/api/v1/
-mv ./stub/api/v1/question.json ./proxy/api/v1/
-
-$ tree
+`$ mkdir -p ./proxy/api/v1/`  
+`$ mv ./stub/api/v1/question.json ./proxy/api/v1/`  
+  
+`$ tree`
+```
 .
 ├── build
 │   ├── index.html
@@ -79,8 +87,9 @@ $ tree
 └── stub
     └── api
         └── users.json
-
-$ unserv -proxy https://realserver.url
+```
+`$ unserv -proxy https://realserver.url`
+```
 server start on:  http://localhost:8080
 
 endpoints:
@@ -95,8 +104,9 @@ proxy url:
 ```
 
 #### Response
-```bash
-$ curl http://localhost:8080/api/v1/question/
+
+`$ curl http://localhost:8080/api/v1/question/`
+```json
 {
     "answer": 2084
 }
