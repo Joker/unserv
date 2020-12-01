@@ -38,8 +38,9 @@ func main() {
 
 	HandleStub(*port)
 	HandleProxy(*port, proxy)
-	http.HandleFunc("/static/", staticServer)
-	http.HandleFunc("/", index)
+	// http.HandleFunc("/static/", staticServer)
+	// http.HandleFunc("/", index)
+	http.HandleFunc("/", staticServerWithIndex)
 
 	var hdl http.Handler
 	if rqlog {
@@ -53,7 +54,7 @@ func main() {
 
 func index(wr http.ResponseWriter, req *http.Request) {
 	var index = app + "/index.html"
-	if _, err := os.Stat(index); os.IsNotExist(err) || req.URL.Path != "/" {
+	if file, err := os.Stat(index); os.IsNotExist(err) || file.IsDir() || req.URL.Path != "/" {
 		err404(wr, req.URL.Path)
 		return
 	}
@@ -62,6 +63,30 @@ func index(wr http.ResponseWriter, req *http.Request) {
 
 func staticServer(wr http.ResponseWriter, req *http.Request) {
 	path := app + req.URL.Path
+	if file, err := os.Stat(path); err == nil && !file.IsDir() {
+		http.ServeFile(wr, req, path)
+		return
+	}
+	err404(wr, path)
+}
+
+func staticServerWithIndex(wr http.ResponseWriter, req *http.Request) {
+	if req.URL.Path == "/" {
+		var index = app + "/index.html"
+		if file, err := os.Stat(index); err == nil && !file.IsDir() {
+			http.ServeFile(wr, req, index)
+			return
+		}
+		err404(wr, app+"/index.html")
+		return
+	}
+
+	var path = app + "/static/" + req.URL.Path
+	if file, err := os.Stat(path); err == nil && !file.IsDir() {
+		http.ServeFile(wr, req, path)
+		return
+	}
+	path = app + req.URL.Path
 	if file, err := os.Stat(path); err == nil && !file.IsDir() {
 		http.ServeFile(wr, req, path)
 		return
