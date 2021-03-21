@@ -118,15 +118,17 @@ proxy url:
 ```
 Usage of ./unserv:
   -log
-    	shows HTTP request log
+    	show HTTP request log
   -p int
     	server port (default 8080)
   -proxy string
-    	reverse proxy url (example:  http://localhost:9000 )
-  -react
-    	write setupProxy.js file (for React CRA with http-proxy-middleware)
+    	reverse proxy url (example: http://localhost:9000)
   -reread
     	disable endpoint file cache (reread file on every request)
   -root string
-    	root path for index.html and ./static foder (default "./build")
+    	root path for index.html and ./static folder (default "./build")
+  -setup
+    	write setupProxy.js file (for React CRA with http-proxy-middleware)
+  -share string
+    	path to shared folder (example: ./dir)
 ```
