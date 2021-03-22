@@ -8,18 +8,16 @@ import (
 	"os"
 )
 
-var (
-	app    string
-	rqlog  bool
-	reread bool
-)
+var app string
 
 func main() {
 	var (
-		js    = flag.Bool("setup", false, "write setupProxy.js file (for React CRA with http-proxy-middleware)")
-		port  = flag.Int("p", 8080, "server port")
-		proxy string
-		share string
+		js     = flag.Bool("setup", false, "write setupProxy.js file (for React CRA with http-proxy-middleware)")
+		port   = flag.Int("p", 8080, "server port")
+		reread bool
+		rqlog  bool
+		proxy  string
+		share  string
 	)
 	flag.BoolVar(&reread, "reread", false, "disable endpoint file cache (reread file on every request)")
 	flag.BoolVar(&rqlog, "log", false, "show HTTP request log")
@@ -42,7 +40,7 @@ func main() {
 
 	//
 
-	HandleStub(*port)
+	HandleStub(*port, reread)
 	HandleProxy(*port, proxy)
 	http.HandleFunc("/", staticServerWithIndex)
 
@@ -63,7 +61,7 @@ func staticServerWithIndex(wr http.ResponseWriter, req *http.Request) {
 			http.ServeFile(wr, req, index)
 			return
 		}
-		err404(wr, app+"/index.html")
+		err404(wr, index)
 		return
 	}
 
@@ -92,26 +90,4 @@ func logMiddleware(handler http.Handler) http.Handler {
 		log.Printf("    %s: %s\n", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
-}
-
-//
-
-// http.HandleFunc("/", index)
-func index(wr http.ResponseWriter, req *http.Request) {
-	var index = app + "/index.html"
-	if file, err := os.Stat(index); os.IsNotExist(err) || file.IsDir() || req.URL.Path != "/" {
-		err404(wr, req.URL.Path)
-		return
-	}
-	http.ServeFile(wr, req, index)
-}
-
-// http.HandleFunc("/static/", staticServer)
-func staticServer(wr http.ResponseWriter, req *http.Request) {
-	path := app + req.URL.Path
-	if file, err := os.Stat(path); err == nil && !file.IsDir() {
-		http.ServeFile(wr, req, path)
-		return
-	}
-	err404(wr, path)
 }

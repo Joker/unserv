@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func makeEndPoint(path, ext string) func(http.ResponseWriter, *http.Request) {
+func makeEndPoint(path, ext string, reread bool) func(http.ResponseWriter, *http.Request) {
 	var (
 		json []byte
 		err  error
@@ -38,13 +38,13 @@ func makeEndPoint(path, ext string) func(http.ResponseWriter, *http.Request) {
 }
 
 // make endpoint for each file in stub dir
-func HandleStub(port int) {
+func HandleStub(port int, reread bool) {
 	fmt.Printf("server start on:  http://localhost:%d\n\nendpoints:\n", port)
 
 	for _, path := range walkOnDir("./stub") {
 		url, ext := path2url(path, "stub")
 
-		endPoint := makeEndPoint(path, ext)
+		endPoint := makeEndPoint(path, ext, reread)
 		http.HandleFunc(url+"/", endPoint)
 		http.HandleFunc(url, endPoint)
 
