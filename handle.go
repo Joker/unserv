@@ -2,30 +2,29 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 )
 
-func makeEndPoint(path, ext string, reread bool) func(http.ResponseWriter, *http.Request) {
+func makeEndPoint(path, ext string, reread bool, fsys fs.FS) func(http.ResponseWriter, *http.Request) {
 	var (
 		json []byte
 		err  error
 	)
 	if !reread {
-		json, err = ioutil.ReadFile(path)
+		json, err = fs.ReadFile(fsys, path)
 		if err != nil {
 			json = []byte(`{"Error": "ReadFile(` + path + `)"}`)
 		}
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		if reread {
-			json, err = ioutil.ReadFile(path)
+			json, err = fs.ReadFile(fsys, path)
 			if err != nil {
 				json = []byte(`{"Error": "ReadFile(` + path + `)"}`)
 			}
@@ -38,13 +37,13 @@ func makeEndPoint(path, ext string, reread bool) func(http.ResponseWriter, *http
 }
 
 // make endpoint for each file in stub dir
-func HandleStub(port int, reread bool) {
+func HandleStub(port int, reread bool, fsys fs.FS) {
 	fmt.Printf("server start on:  http://localhost:%d\n\nendpoints:\n", port)
 
-	for _, path := range walkOnDir("./stub") {
+	for _, path := range walkOnDir("stub", fsys) {
 		url, ext := path2url(path, "stub")
 
-		endPoint := makeEndPoint(path, ext, reread)
+		endPoint := makeEndPoint(path, ext, reread, fsys)
 		http.HandleFunc(url+"/", endPoint)
 		http.HandleFunc(url, endPoint)
 
@@ -64,7 +63,7 @@ func makeProxyPoint(proxy *httputil.ReverseProxy) func(http.ResponseWriter, *htt
 }
 
 // make reverse proxy endpoint for each file in proxy dir
-func HandleProxy(port int, proxy string) {
+func HandleProxy(port int, proxy string, fsys fs.FS) {
 	if proxy != "" {
 		proxyUrl, err := url.Parse(proxy)
 		if err != nil {
@@ -75,7 +74,7 @@ func HandleProxy(port int, proxy string) {
 
 		fmt.Printf("\nreverse on:  %s\n\nproxy url:\n", proxy)
 
-		for _, path := range walkOnDir("./proxy") {
+		for _, path := range walkOnDir("proxy", fsys) {
 			url, _ := path2url(path, "proxy")
 
 			proxyPoint := makeProxyPoint(reverseProxy)
@@ -91,16 +90,12 @@ func HandleProxy(port int, proxy string) {
 
 //
 
-func walkOnDir(path string) []string {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		fmt.Printf("      required %s/\n", path)
-		return nil
-	}
-
+func walkOnDir(path string, fsystem fs.FS) []string {
 	var out = []string{}
-	var err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+
+	var err = fs.WalkDir(fsystem, path, func(path string, info fs.DirEntry, err error) error {
 		if err != nil {
-			log.Printf("   bad path%s\n", path)
+			log.Printf("   bad path: %s\n", path)
 			return err
 		}
 		if !info.IsDir() {
@@ -110,7 +105,7 @@ func walkOnDir(path string) []string {
 	})
 
 	if err != nil {
-		log.Printf("%v\n", err)
+		log.Printf("   %v\n", err)
 		return nil
 	}
 	return out

@@ -1,12 +1,17 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 )
+
+//go:embed build stub
+var content embed.FS
 
 var app string
 
@@ -15,11 +20,13 @@ func main() {
 		js     = flag.Bool("setup", false, "write setupProxy.js file (for React CRA with http-proxy-middleware)")
 		port   = flag.Int("p", 8080, "server port")
 		reread bool
+		inner  bool
 		rqlog  bool
 		proxy  string
 		share  string
 	)
 	flag.BoolVar(&reread, "reread", false, "disable endpoint file cache (reread file on every request)")
+	flag.BoolVar(&inner, "inner", false, "use embedded source if precompiled")
 	flag.BoolVar(&rqlog, "log", false, "show HTTP request log")
 	flag.StringVar(&app, "root", "./build", "root path for index.html and ./static folder")
 	flag.StringVar(&proxy, "proxy", "", `reverse proxy url (example: http://localhost:9000)`)
@@ -39,10 +46,21 @@ func main() {
 	}
 
 	//
+	//
 
-	HandleStub(*port, reread)
-	HandleProxy(*port, proxy)
-	http.HandleFunc("/", staticServerWithIndex)
+	if inner {
+		buildDir, _ := fs.Sub(content, "build")
+
+		HandleStub(*port, reread, content)
+		HandleProxy(*port, proxy, content)
+		http.Handle("/", http.FileServer(http.FS(buildDir)))
+	} else {
+		fsys := os.DirFS("./")
+
+		HandleStub(*port, reread, fsys)
+		HandleProxy(*port, proxy, fsys)
+		http.HandleFunc("/", staticServerWithIndex)
+	}
 
 	var middleware http.Handler
 	if rqlog {
@@ -87,7 +105,7 @@ func err404(w http.ResponseWriter, error string) {
 
 func logMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("    %s: %s\n", r.Method, r.URL)
+		log.Printf(" %s:\t%s\n", r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
